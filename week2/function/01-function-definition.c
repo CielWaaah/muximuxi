@@ -1,5 +1,5 @@
 #include<stdio.h>
-void func1(){
+int func1(){
 	printf("second\n");
 }
 int main(){
