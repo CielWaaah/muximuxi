@@ -100,7 +100,8 @@ func Change(w http.ResponseWriter, r *http.Request) {
 			user.Pwd = newPwd
 
 			w.Write([]byte("修改成功！"))
-		}
+		} else {
+			w.Write([]byte("修改失败！"))
 	} else {
 		w.Write([]byte("请重新登录！"))
 	}
