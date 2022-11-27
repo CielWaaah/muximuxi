@@ -2,9 +2,7 @@ package main
 
 import (
 	"fmt"
-	"math/rand"
 	"net/http"
-	"strconv"
 	"time"
 )
 
@@ -19,26 +17,31 @@ type User struct {
 	cookie http.Cookie
 }
 
-var user User
-
 // 注册
 func Register(w http.ResponseWriter, r *http.Request) {
+	var user User
 
 	Name := r.FormValue("name")
 	ID := r.FormValue("id")
 	Pwd := r.FormValue("pwd")
 
-	if ID != "" && Pwd != "" && Name != "" {
-		user.Name = Name
-		user.ID = ID
-		user.Pwd = Pwd
+	//判断该用户是否注册
+	_, ok := UserStore[ID]
+	if ok {
+		if ID != "" && Pwd != "" && Name != "" {
+			user.Name = Name
+			user.ID = ID
+			user.Pwd = Pwd
 
-		//把这个新用户放到用户库里去
-		UserStore[user.ID] = &user
+			//把这个新用户放到用户库里去
+			UserStore[user.ID] = &user
 
-		w.Write([]byte("注册成功！"))
+			w.Write([]byte("注册成功！"))
+		} else {
+			w.Write([]byte("注册失败！"))
+		}
 	} else {
-		w.Write([]byte("注册失败！"))
+		w.Write([]byte("该用户已注册！"))
 	}
 }
 
@@ -48,15 +51,14 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	Pwd := r.FormValue("pwd")
 
 	//检查用户是否存在
-	_, ok := UserStore[ID]
+	user, ok := UserStore[ID]
 	if ok {
 		if Pwd == user.Pwd {
 			//生成cookie
-			value := strconv.Itoa(rand.Int())
 			expires := time.Now().Add(time.Hour)
 			cookie := http.Cookie{
-				Name:     ID,
-				Value:    value,
+				Name:     "userId",
+				Value:    user.ID,
 				Expires:  expires,
 				HttpOnly: true,
 			}
@@ -74,13 +76,15 @@ func Login(w http.ResponseWriter, r *http.Request) {
 
 // 获取信息
 func Get(w http.ResponseWriter, r *http.Request) {
+
 	//判断有无cookie存在
-	cookies := r.Header["Cookie"]
+	cookie, err := r.Cookie("userId")
 	//有-->直接查看信息
 	//无-->重新登陆
-	if cookies != nil {
-		fmt.Fprintf(w, "ID:%s\n", user.ID)
-		fmt.Fprintf(w, "Name:%s", user.Name)
+	if err != nil {
+		ID := cookie.Value
+		fmt.Fprintf(w, "ID:%s\n", ID)
+		fmt.Fprintf(w, "Name:%s", UserStore[ID].Name)
 	} else {
 		w.Write([]byte("请重新登录！"))
 	}
@@ -88,6 +92,8 @@ func Get(w http.ResponseWriter, r *http.Request) {
 
 // 修改信息
 func Change(w http.ResponseWriter, r *http.Request) {
+	var user User
+
 	//判断有无cookie存在
 	cookies := r.Header["Cookie"]
 	//有-->直接修改信息
@@ -102,6 +108,7 @@ func Change(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte("修改成功！"))
 		} else {
 			w.Write([]byte("修改失败！"))
+		}
 	} else {
 		w.Write([]byte("请重新登录！"))
 	}
